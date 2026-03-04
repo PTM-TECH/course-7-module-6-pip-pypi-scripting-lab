@@ -1,19 +1,66 @@
+import argparse
 from datetime import datetime
 import os
+import requests
 
-def generate_log(data):
-    # TODO: Implement log generation logic
+class Logger:
+    def __init__(self, log_entries):
+        if not isinstance(log_entries, list):
+            raise ValueError("log_entries must be a list")
+        self.log_entries = log_entries
 
-    # STEP 1: Validate input
-    # Hint: Check if data is a list
+    def generate_log(self, directory="."):
+        os.makedirs(directory, exist_ok=True)
+        filename = f"log_{datetime.now().strftime('%Y%m%d')}.txt"
+        filepath = os.path.join(directory, filename)
 
-    # STEP 2: Generate a filename with today's date (e.g., "log_20250408.txt")
-    # Hint: Use datetime.now().strftime("%Y%m%d")
+        with open(filepath, "w") as file:
+            for entry in self.log_entries:
+                file.write(f"{entry}\n")
 
-    # STEP 3: Write the log entries to a file using File I/O
-    # Use a with open() block and write each line from the data list
-    # Example: file.write(f"{entry}\n")
+        print(f"Log written to {filepath}")
+        return filepath
 
-    # STEP 4: Print a confirmation message with the filename
+def fetch_data():
+    url = "https://jsonplaceholder.typicode.com/posts/1"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    return {}
 
-    pass
+# --- CLI Handling ---
+def main():
+    parser = argparse.ArgumentParser(description="Task Automation CLI Tool")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # add-task command
+    parser_add = subparsers.add_parser("add-task", help="Add a new task")
+    parser_add.add_argument("task", type=str, help="Task description")
+
+    # complete-task command
+    parser_complete = subparsers.add_parser("complete-task", help="Mark task complete")
+    parser_complete.add_argument("task", type=str, help="Task to complete")
+
+    args = parser.parse_args()
+
+    # Example: we store logs in-memory for now
+    log_data = ["User logged in", "User updated profile", "Report exported"]
+    logger = Logger(log_data)
+
+    if args.command == "add-task":
+        logger.log_entries.append(args.task)
+        logger.generate_log()
+        print(f"Task added: {args.task}")
+
+    elif args.command == "complete-task":
+        if args.task in logger.log_entries:
+            logger.log_entries.remove(args.task)
+            logger.generate_log()
+            print(f"Task completed: {args.task}")
+        else:
+            print(f"Task not found: {args.task}")
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
